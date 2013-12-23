@@ -1,0 +1,67 @@
+- hosts: local
+  gather_facts: False
+  tasks:
+    - name: Server build requests
+      local_action:
+        module: rax
+        credentials: ~/.raxpub
+        name: lvm
+        flavor: 4
+        image: ubuntu-1204-lts-precise-pangolin
+        region: IAD
+        state: present
+        disk_config: manual
+        wait: yes
+      register: rax
+
+    - name: Add servers to host group
+      local_action:
+        module: add_host
+        hostname: "{{ item.name }}"
+        ansible_ssh_host: "{{ item.rax_accessipv4 }}"
+        ansible_ssh_pass: "{{ item.rax_adminpass }}"
+        ansible_ssh_user: root
+        groupname: lvm
+      with_items: rax.instances
+      when: rax.action != 'delete'
+
+- name: Configure servers
+  hosts: lvm
+  tasks:
+    - name: Ensure required packages are installed
+      apt: pkg={{ item }} state=latest cache_valid_time=86400 update_cache=yes
+      with_items:
+        - lvm2
+        - parted
+
+    - name: Check for /dev/xvda2
+      command: parted -s /dev/xvda print 2
+      register: xvda2
+      failed_when: xvda2.rc is not defined
+      changed_when: >
+        xvda2.stdout == "Error: Partition doesn't exist."
+
+    - name: Create /dev/xvda2
+      command: parted -s /dev/xvda mkpart primary 21.5G 100%
+      when: xvda2.rc != 0
+
+    - name: Add LVM flag to /dev/xvda2
+      command: parted -s /dev/xvda set 2 lvm on
+      when: xvda2.rc != 0
+
+    - name: Create PV / VG on /dev/xvda2
+      lvg: vg=vg0 pvs=/dev/xvda2
+
+    - name: Create data LV on vg0
+      lvol: vg=vg0 lv=data size=100%FREE
+
+    - name: Create filesystem on data LV
+      filesystem: dev=/dev/vg0/data fstype=ext3
+
+    - name: Ensure data mountpoint exists
+      file: path=/data state=directory owner=root group=root mode=0755
+
+    - name: Mount data LV
+      mount: name=/data src=/dev/vg0/data fstype=ext3
+             state=mounted opts="errors=remount-ro,noatime,barrier=0"
+             dump=0 passno=2
