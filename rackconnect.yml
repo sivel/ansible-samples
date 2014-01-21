@@ -1,0 +1,57 @@
+- name: Create an exact count of servers
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+    - name: Server build requests
+      local_action:
+        module: rax
+        credentials: ~/.raxpub
+        name: test%03d.example.org
+        flavor: performance1-1
+        image: ubuntu-1204-lts-precise-pangolin
+        disk_config: manual
+        region: DFW
+        state: present
+        count: 1
+        exact_count: yes
+        group: test
+        wait: yes
+      register: rax
+
+    - name: Add servers to in memory groups
+      local_action:
+        module: add_host
+        hostname: "{{ item.name }}"
+        ansible_ssh_host: "{{ item.rax_accessipv4 }}"
+        ansible_ssh_pass: "{{ item.rax_adminpass }}"
+        ansible_ssh_user: root
+        groups: test,newtest
+      with_items: rax.success
+      when: rax.action == 'create'
+
+- name: Wait for rackconnect automation to complete
+  hosts: newtest
+  gather_facts: false
+  tasks:
+    - name: Wait for rackconnect_automation_status
+      local_action:
+        module: rax_facts
+        credentials: ~/.raxpub
+        name: "{{ inventory_hostname }}"
+        region: DFW
+      register: rax_facts
+      until: rax_facts.ansible_facts.rax_metadata['rackconnect_automation_status']|default('') == 'DEPLOYED'
+      retries: 30
+      delay: 10
+
+    - name: Wait for rax_service_level_automation
+      local_action:
+        module: rax_facts
+        credentials: ~/.raxpub
+        name: "{{ inventory_hostname }}"
+        region: DFW
+      register: rax_facts
+      until: rax_facts.ansible_facts.rax_metadata['rax_service_level_automation']|default('') == 'Complete'
+      retries: 30
+      delay: 10
