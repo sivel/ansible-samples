@@ -55,3 +55,11 @@
       until: rax_facts.ansible_facts.rax_metadata['rax_service_level_automation']|default('') == 'Complete'
       retries: 30
       delay: 10
+
+- name: Base Configure Servers
+  hosts: test
+  roles:
+    - role: sivel.openssh
+      opensshd_PermitRootLogin: "no"
+
+    - role: bennojoy.ntp
