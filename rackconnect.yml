@@ -59,6 +59,8 @@
 - name: Base Configure Servers
   hosts: test
   roles:
+    - role: users
+
     - role: sivel.openssh
       opensshd_PermitRootLogin: "no"
 
