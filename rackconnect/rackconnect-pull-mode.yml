@@ -1,0 +1,29 @@
+---
+- name: Ensure Rackconnect Automation is complete
+  hosts: all
+  connection: local
+  tasks:
+    - name: Wait for automation_status
+      uri:
+        url: "https://{{ rax_region }}.api.rackconnect.rackspace.com/v1/automation_status?format=json"
+        return_content: yes
+      register: automation_status
+      until: automation_status['automation_status']|default('') == 'DEPLOYED'
+      retries: 30
+      delay: 10
+
+    - name: Wait for /tmp/rs_managed_cloud_automation_complete
+      wait_for:
+        path: /tmp/rs_managed_cloud_automation_complete
+        delay: 10
+
+- name: Base Configure Servers
+  hosts: all
+  connection: local
+  roles:
+    - role: users
+
+    - role: sivel.openssh
+      opensshd_PermitRootLogin: "no"
+
+    - role: bennojoy.ntp
