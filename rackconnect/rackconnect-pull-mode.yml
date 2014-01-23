@@ -1,9 +1,9 @@
 ---
-- name: Ensure Rackconnect Automation is complete
+- name: Ensure Rackconnect and Managed Cloud Automation is complete
   hosts: all
   connection: local
   tasks:
-    - name: Wait for automation_status
+    - name: Wait for rackconnect automation to complete
       uri:
         url: "https://{{ rax_region }}.api.rackconnect.rackspace.com/v1/automation_status?format=json"
         return_content: yes
@@ -12,7 +12,7 @@
       retries: 30
       delay: 10
 
-    - name: Wait for /tmp/rs_managed_cloud_automation_complete
+    - name: Wait for managed cloud automation to complete
       wait_for:
         path: /tmp/rs_managed_cloud_automation_complete
         delay: 10

@@ -31,11 +31,11 @@
       with_items: rax.success
       when: rax.action == 'create'
 
-- name: Wait for rackconnect automation to complete
+- name: Wait for rackconnect and managed cloud automation to complete
   hosts: newtest
   gather_facts: false
   tasks:
-    - name: Wait for rackconnect_automation_status
+    - name: Wait for rackconnnect automation to complete
       local_action:
         module: rax_facts
         credentials: ~/.raxpub
@@ -46,7 +46,7 @@
       retries: 30
       delay: 10
 
-    - name: Wait for rax_service_level_automation
+    - name: Wait for managed cloud automation to complete
       local_action:
         module: rax_facts
         credentials: ~/.raxpub
