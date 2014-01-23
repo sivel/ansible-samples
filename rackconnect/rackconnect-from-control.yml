@@ -26,6 +26,7 @@
         ansible_ssh_host: "{{ item.rax_accessipv4 }}"
         ansible_ssh_pass: "{{ item.rax_adminpass }}"
         ansible_ssh_user: root
+        rax_id: "{{ item.rax_id }}"
         groups: test,newtest
       with_items: rax.success
       when: rax.action == 'create'
@@ -38,7 +39,7 @@
       local_action:
         module: rax_facts
         credentials: ~/.raxpub
-        name: "{{ inventory_hostname }}"
+        id: "{{ rax_id }}"
         region: DFW
       register: rax_facts
       until: rax_facts.ansible_facts.rax_metadata['rackconnect_automation_status']|default('') == 'DEPLOYED'
@@ -49,7 +50,7 @@
       local_action:
         module: rax_facts
         credentials: ~/.raxpub
-        name: "{{ inventory_hostname }}"
+        id: "{{ rax_id }}"
         region: DFW
       register: rax_facts
       until: rax_facts.ansible_facts.rax_metadata['rax_service_level_automation']|default('') == 'Complete'
