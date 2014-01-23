@@ -7,7 +7,7 @@
       local_action:
         module: rax
         credentials: ~/.raxpub
-        name: test%03d.example.org
+        name: web%03d.example.org
         flavor: performance1-1
         image: ubuntu-1204-lts-precise-pangolin
         disk_config: manual
@@ -15,7 +15,7 @@
         state: present
         count: 1
         exact_count: yes
-        group: test
+        group: web
         wait: yes
       register: rax
 
@@ -27,12 +27,12 @@
         ansible_ssh_pass: "{{ item.rax_adminpass }}"
         ansible_ssh_user: root
         rax_id: "{{ item.rax_id }}"
-        groups: test,newtest
+        groups: web,new_web
       with_items: rax.success
       when: rax.action == 'create'
 
 - name: Wait for rackconnect and managed cloud automation to complete
-  hosts: newtest
+  hosts: new_web
   gather_facts: false
   tasks:
     - name: Wait for rackconnnect automation to complete
@@ -58,7 +58,7 @@
       delay: 10
 
 - name: Base Configure Servers
-  hosts: test
+  hosts: web
   roles:
     - role: users
 
