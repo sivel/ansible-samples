@@ -3,11 +3,17 @@
   hosts: all
   connection: local
   tasks:
+    - name: Check for completed bootstrap
+      stat:
+        path: /etc/bootstrap_complete
+      register: bootstrap
+
     - name: Wait for rackconnect automation to complete
       uri:
         url: "https://{{ rax_region }}.api.rackconnect.rackspace.com/v1/automation_status?format=json"
         return_content: yes
       register: automation_status
+      when: bootstrap.stat.exists != True
       until: automation_status['automation_status']|default('') == 'DEPLOYED'
       retries: 30
       delay: 10
@@ -16,6 +22,15 @@
       wait_for:
         path: /tmp/rs_managed_cloud_automation_complete
         delay: 10
+      when: bootstrap.stat.exists != True
+
+    - name: Set bootstrap completed
+      file:
+        path: /etc/bootstrap_complete
+        state: touch
+        owner: root
+        group: root
+        mode: 0400
 
 - name: Base Configure Servers
   hosts: all
