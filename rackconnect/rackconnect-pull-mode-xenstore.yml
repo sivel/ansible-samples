@@ -1,0 +1,62 @@
+---
+- name: Ensure Rackconnect and Managed Cloud Automation is complete
+  hosts: all
+  connection: local
+  tasks:
+    - name: Check for completed bootstrap
+      stat:
+        path: /etc/bootstrap_complete
+      register: bootstrap
+
+    - name: Wait for rackconnect_automation_status xenstore key to exist
+      command: xenstore-exists vm-data/user-metadata/rackconnect_automation_status
+      register: rcas_exists
+      when: bootstrap.stat.exists != True
+      failed_when: rcas_exists.rc|int > 1
+      until: rcas_exists.rc|int == 0
+      retries: 30
+      delay: 10
+
+    - name: Wait for rackconnect automation to complete
+      command: xenstore-read vm-data/user-metadata/rackconnect_automation_status
+      register: rcas
+      when: bootstrap.stat.exists != True
+      until: rcas.stdout|replace('"', '') == 'DEPLOYED'
+      retries: 30
+      delay: 10
+
+    - name: Wait for rax_service_level_automation xenstore key to exist
+      command: xenstore-exists vm-data/user-metadata/rax_service_level_automation
+      register: rsla_exists
+      when: bootstrap.stat.exists != True
+      failed_when: rsla_exists.rc|int > 1
+      until: rsla_exists.rc|int == 0
+      retries: 30
+      delay: 10
+
+    - name: Wait for managed cloud automation to complete
+      command: xenstore-read vm-data/user-metadata/rackconnect_automation_status
+      register: rsla
+      when: bootstrap.stat.exists != True
+      until: rsla.stdout|replace('"', '') == 'DEPLOYED'
+      retries: 30
+      delay: 10
+
+    - name: Set bootstrap completed
+      file:
+        path: /etc/bootstrap_complete
+        state: touch
+        owner: root
+        group: root
+        mode: 0400
+
+- name: Base Configure Servers
+  hosts: all
+  connection: local
+  roles:
+    - role: users
+
+    - role: sivel.openssh
+      opensshd_PermitRootLogin: "no"
+
+    - role: bennojoy.ntp
