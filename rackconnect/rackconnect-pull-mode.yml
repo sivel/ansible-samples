@@ -8,9 +8,14 @@
         path: /etc/bootstrap_complete
       register: bootstrap
 
+    - name: Get region
+      command: xenstore-read vm-data/provider_data/region
+      register: rax_region
+      when: bootstrap.stat.exists != True
+
     - name: Wait for rackconnect automation to complete
       uri:
-        url: "https://{{ rax_region }}.api.rackconnect.rackspace.com/v1/automation_status?format=json"
+        url: "https://{{ rax_region.stdout }}.api.rackconnect.rackspace.com/v1/automation_status?format=json"
         return_content: yes
       register: automation_status
       when: bootstrap.stat.exists != True
