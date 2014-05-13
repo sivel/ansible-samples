@@ -22,7 +22,7 @@
         protocol: HTTP
         type: PUBLIC
         timeout: 30
-        region: ORD
+        region: "{{ region }}"
         wait: yes
         state: present
         meta:
@@ -49,7 +49,7 @@
         flavor: performance1-1
         image: ubuntu-1404-lts-trusty-tahr-pvhvm
         key_name: noc
-        region: ORD
+        region: "{{ region }}"
         state: present
         count: 3
         exact_count: yes
@@ -92,6 +92,6 @@
         condition: enabled
         type: primary
         wait: yes
-        region: ORD
+        region: "{{ region }}"
       with_items: httpbin_servers.success
       when: httpbin_servers.action == 'create'

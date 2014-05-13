@@ -3,3 +3,4 @@ ansible_ssh_user: root
 ansible_ssh_private_key_file: ~/.ssh/id_rsa
 
 domain: example.org
+region: ORD
