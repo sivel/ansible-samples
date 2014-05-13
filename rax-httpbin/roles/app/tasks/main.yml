@@ -1,0 +1,78 @@
+---
+- name: Check for required variables
+  fail:
+    msg: "{{ item }} is a required variable"
+  when: item is not defined
+  with_items:
+    - "app_name"
+    - "app_port"
+
+- name: Create application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: webapp
+    group: webapp
+  with_items:
+    - app_home
+    - "{{ app_home }}/logs"
+
+- name: Clone/Pull git repository
+  git:
+    repo: "https://github.com/kennethreitz/httpbin.git"
+    dest: "{{ app_directory }}"
+    update: yes
+  notify:
+    - "chown {{ app_home }}"
+    - "restart {{ app_name }}"
+    - "start {{ app_name }}"
+  register: git
+
+- name: Configure gunicorn
+  template:
+    src: gunicorn.conf.py.j2
+    dest: "{{ app_home }}/gunicorn.conf.py"
+    owner: webapp
+    group: webapp
+    mode: 0644
+  notify:
+    - "restart {{ app_name }}"
+
+- name: Install python dependencies
+  pip:
+    requirements: "{{ app_directory }}/requirements.txt"
+    virtualenv: "{{ app_home }}/venv"
+    use_mirrors: no
+  notify:
+    - "chown {{ app_home }}"
+
+- name: Install upstart job
+  template:
+    src: upstart.conf.j2
+    dest: "/etc/init/{{ app_name }}.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install logrotate script
+  template:
+    src: logrotate.d.j2
+    dest: "/etc/logrotate.d/{{ app_name }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Ensure the app is started
+  service:
+    name: "{{ app_name }}"
+    state: started
+
+- name: Install nginx configuration
+  template:
+    src: nginx-vhost.conf.j2
+    dest: "/etc/nginx/conf.d/{{ app_name }}.conf"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart nginx

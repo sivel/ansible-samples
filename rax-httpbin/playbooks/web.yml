@@ -1,0 +1,18 @@
+---
+- hosts: httpbin
+  roles:
+    - role: webapp-user
+      tags:
+        - webapp_user
+
+    - role: nginx
+      tags:
+        - nginx
+
+    - role: app
+      app_name: httpbin
+      app_port: 5001
+      app_domain: "httpbin.{{ domain }}"
+      gunicorn_worker: gevent
+      tags:
+        - httpbin

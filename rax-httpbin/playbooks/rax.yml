@@ -1,0 +1,97 @@
+---
+- name: Build httpbin Environment
+  hosts: localhost
+  gather_facts: False
+  tasks:
+    - name: Domain create request
+      local_action:
+        module: rax_dns
+        credentials: ~/.rackspace_cloud_credentials
+        name: "{{ domain }}"
+        state: present
+        email: "admin@{{ domain }}"
+        comment: foo
+      register: httpbin_dns
+
+    - name: Load Balancer create request
+      local_action:
+        module: rax_clb
+        credentials: ~/.rackspace_cloud_credentials
+        name: httpbin-http
+        port: 80
+        protocol: HTTP
+        type: PUBLIC
+        timeout: 30
+        region: ORD
+        wait: yes
+        state: present
+        meta:
+          app: httpbin
+      register: httpbin_http_clb
+
+    - name: Create VIP DNS record
+      local_action:
+        module: rax_dns_record
+        credentials: ~/.rackspace_cloud_credentials
+        domain: "{{ domain }}"
+        name: "httpbin.{{ domain }}"
+        state: present
+        data: "{{ (httpbin_http_clb.balancer.virtual_ips|first).address }}"
+        type: A
+        ttl: 300
+        comment: httpbin
+
+    - name: Server create request
+      local_action:
+        module: rax
+        credentials: ~/.rackspace_cloud_credentials
+        name: "bin%02d.{{ domain }}"
+        flavor: performance1-1
+        image: ubuntu-1404-lts-trusty-tahr-pvhvm
+        key_name: noc
+        region: ORD
+        state: present
+        count: 3
+        exact_count: yes
+        group: httpbin
+        wait: yes
+      register: httpbin_servers
+
+    - name: Create Host DNS record
+      local_action:
+        module: rax_dns_record
+        credentials: ~/.rackspace_cloud_credentials
+        domain: "{{ domain }}"
+        name: "{{ item.rax_name|replace('.' + domain, '') }}.{{ domain }}"
+        state: present
+        data: "{{ item.rax_accessipv4 }}"
+        type: A
+        ttl: 300
+        comment: "{{ item.rax_name }}"
+      with_items: httpbin_servers.success
+      when: httpbin_servers.action == 'create'
+
+    - name: Add servers to httpbin host group
+      local_action:
+        module: add_host
+        hostname: "{{ item.name }}"
+        ansible_ssh_host: "{{ item.rax_accessipv4 }}"
+        ansible_ssh_user: root
+        ansible_ssh_pass: "{{ item.rax_adminpass }}"
+        groupname: httpbin
+      with_items: httpbin_servers.success
+      when: httpbin_servers.action == 'create'
+
+    - name: Add servers to Load balancer
+      local_action:
+        module: rax_clb_nodes
+        credentials: ~/.rackspace_cloud_credentials
+        load_balancer_id: "{{ httpbin_http_clb.balancer.id }}"
+        address: "{{ item.rax_networks.private|first }}"
+        port: 80
+        condition: enabled
+        type: primary
+        wait: yes
+        region: ORD
+      with_items: httpbin_servers.success
+      when: httpbin_servers.action == 'create'

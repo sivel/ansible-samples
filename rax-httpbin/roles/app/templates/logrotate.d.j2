@@ -1,0 +1,13 @@
+/home/webapp/apps/{{ app_name }}/logs/*.log {
+        daily
+        missingok
+        rotate 52
+        compress
+        delaycompress
+        notifempty
+        create 644 webapp webapp
+        sharedscripts
+        postrotate
+                [ -f /var/run/{{ app_name }}.pid ] && kill -USR1 `cat /var/run/{{ app_name }}.pid`
+        endscript
+}

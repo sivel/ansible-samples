@@ -1,0 +1,39 @@
+---
+- name: Add nginx PGP key
+  apt_key:
+    url: "http://nginx.org/keys/nginx_signing.key"
+    state: present
+
+- name: Add nginx repository
+  apt_repository:
+    repo: "deb http://nginx.org/packages/ubuntu/ {{ ansible_distribution_release }} nginx"
+    state: present
+  register: nginx_repo
+
+- name: apt-get update
+  apt:
+    update_cache: yes
+  when: nginx_repo.changed
+
+- name: Install nginx
+  apt:
+    pkg: nginx
+    state: latest
+
+- name: Add default nginx configuration
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    group: root
+    owner: root
+    mode: 0644
+  notify: restart nginx
+
+- name: Remove nginx default files
+  file:
+    path: "/etc/nginx/conf.d/{{ item }}"
+    state: absent
+  with_items:
+    - default.conf
+    - example_ssl.conf
+  notify: restart nginx

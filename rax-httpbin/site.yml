@@ -1,0 +1,4 @@
+---
+- include: playbooks/rax.yml
+- include: playbooks/common.yml
+- include: playbooks/web.yml

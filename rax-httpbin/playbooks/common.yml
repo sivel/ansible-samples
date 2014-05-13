@@ -1,0 +1,10 @@
+---
+- name: All servers
+  hosts: httpbin
+  sudo: yes
+  tags:
+    - common
+  roles:
+    - role: common-packages
+      tags:
+        - common_packages

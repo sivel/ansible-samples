@@ -1,0 +1,14 @@
+---
+- name: Add webapp user
+  user:
+    name: webapp
+    shell: /bin/bash
+    state: present
+
+- name: Create webapp app root
+  file:
+    path: /home/webapp/apps/
+    state: directory
+    owner: webapp
+    group: webapp
+    mode: 755

@@ -1,0 +1,23 @@
+- name: "chown {{ app_home }}"
+  file:
+    path: "{{ app_home }}"
+    state: directory
+    recurse: yes
+    owner: webapp
+    group: webapp
+
+- name: "restart {{ app_name }}"
+  service:
+    name: "{{ app_name }}"
+    state: restarted
+    sleep: 1
+
+- name: "start {{ app_name }}"
+  service:
+    name: "{{ app_name }}"
+    state: started
+
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted

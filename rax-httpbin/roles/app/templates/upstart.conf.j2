@@ -1,0 +1,5 @@
+description "{{ app_name }}"
+start on runlevel [2345]
+stop on runlevel [!$RUNLEVEL]
+env GEVENT_RESOLVER=ares
+exec {{ app_home }}/venv/bin/gunicorn -c {{ app_home }}/gunicorn.conf.py --pythonpath {{ app_directory }} {{ app_name }}:app

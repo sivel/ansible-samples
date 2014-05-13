@@ -1,0 +1,33 @@
+---
+- name: Install common packages
+  apt: pkg={{ item }} state=installed update_cache=yes cache_valid_time=86400
+  with_items:
+    - git
+    - gcc
+    - make
+    - python2.7
+    - python2.7-dev
+    - python-pip
+    - software-properties-common
+    - python-software-properties
+    - vim-nox
+    - ntp
+
+- name: Make sure ntp is running and enabled
+  service: name=ntp state=running enabled=yes
+
+- name: Check default editor
+  stat: path=/etc/alternatives/editor
+  register: editor
+
+- name: Set vim-nox as the default editor
+  shell: "/usr/sbin/update-alternatives --set editor /usr/bin/vim.nox || /usr/bin/update-alternatives --set editor /usr/bin/vim.nox"
+  when: editor.stat.lnk_source != '/usr/bin/vim.nox'
+
+- name: Update python modules from pypi
+  pip: name={{ item }} state=latest use_mirrors=no
+  with_items:
+    - setuptools
+    - pip
+    - ipython
+    - virtualenv

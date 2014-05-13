@@ -1,0 +1,3 @@
+---
+app_home: "/home/webapp/apps/{{ app_name }}"
+app_directory: "{{ app_home }}/{{ app_name }}"
